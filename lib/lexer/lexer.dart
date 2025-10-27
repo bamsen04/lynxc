@@ -1,5 +1,3 @@
-import 'dart:isolate';
-
 import 'token.dart';
 import 'token_type.dart';
 
