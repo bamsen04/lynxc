@@ -2,7 +2,7 @@ import 'package:lynxc/ast/nodes/ast_node.dart';
 import 'package:lynxc/ast/nodes/expression.dart';
 import 'package:lynxc/ast/nodes/function_decl.dart';
 import 'package:lynxc/ast/nodes/literal_expression.dart';
-import 'package:lynxc/ast/nodes/print_stmt.dart';
+import 'package:lynxc/ast/nodes/func_statement.dart';
 import 'package:lynxc/ast/nodes/program.dart';
 import 'package:lynxc/ast/nodes/var_decl.dart';
 import 'package:lynxc/ast/nodes/variable_expression.dart';
@@ -56,19 +56,46 @@ class Parser {
   }
 
   FunctionDecl functionDeclaration() {
-    Token name = advance(); // function name
+    // Function name after 'void' or other keyword
+    Token name = advance();
+
     consume(TokenType.lparen, "Expect '(' after function name.");
+
+    List<VarDecl> parameters = [];
+
+    // Parse typed parameters (e.g., int x, string msg)
+    if (!check(TokenType.rparen)) {
+      do {
+        // Expect type keyword
+        if (!check(TokenType.keyword)) {
+          throw Exception("Expect parameter type before name at line ${peek().line}");
+        }
+        String type = advance().lexeme;
+
+        // Expect variable name
+        if (!check(TokenType.identifier)) {
+          throw Exception("Expect parameter name after type at line ${peek().line}");
+        }
+        Token paramName = advance();
+
+        // Create parameter VarDecl (no initializer)
+        parameters.add(VarDecl(type, paramName.lexeme, null));
+      } while (match([TokenType.comma]));
+    }
+
     consume(TokenType.rparen, "Expect ')' after parameters.");
     consume(TokenType.lbrace, "Expect '{' before function body.");
 
+    // Parse function body
     List<ASTNode> body = [];
     while (!check(TokenType.rbrace) && !isAtEnd()) {
       body.add(declaration());
     }
 
     consume(TokenType.rbrace, "Expect '}' after function body.");
-    return FunctionDecl("void", name.lexeme, body);
+    return FunctionDecl("void", name.lexeme, parameters, body);
   }
+
 
   VarDecl variableDeclaration(String type) {
     Token name = advance(); // variable name
@@ -97,19 +124,32 @@ class Parser {
     }
 
     consume(TokenType.lparen, "Expect '(' after function.");
-    Expression value = expression();
+    
+    List<Expression> args = [];
+
+    Expression? expr = expression(false);
+    while (expr != null) {
+      args.add(expr);
+
+      if (!check(TokenType.rparen)) {
+        consume(TokenType.comma, "Expect ',' between arguments.");
+      }
+
+      expr = expression(false);
+    }
+
     consume(TokenType.rparen, "Expect ')' after function.");
     consume(TokenType.semicolon, "Expect ';' after function.");
-    return FuncStmt(value, tk.lexeme);
+    return FuncStmt(args, tk.lexeme);
   }
 
   ASTNode expressionStatement() {
-    Expression expr = expression();
+    Expression? expr = expression(false);
     consume(TokenType.semicolon, "Expect ';' after expression.");
-    return expr;
+    return expr!;
   }
 
-  Expression expression() {
+  Expression? expression([bool raiseError = true]) {
     if (check(TokenType.number)) {
       return LiteralExpr(advance().literal ?? "");
     } else if (check(TokenType.string)) {
@@ -117,7 +157,11 @@ class Parser {
     } else if (check(TokenType.identifier)) {
       return VariableExpr(advance().lexeme);
     }
-    throw Exception("Unexpected expression at ${peek().line}");
+    
+    if (raiseError) {
+      throw Exception("Unexpected expression at ${peek().line}");
+    }
+    return null;
   }
 
   Token consume(TokenType type, String message) {

@@ -1,10 +1,12 @@
-void func() {
-    print("Hello from func!");
+void func(int x, string y) {
+    print(x);
+    print(y);
 }
 
 void main() {
-    func(1234);
     print("Hello, world!");
+
+    func(127, "42");
 
     int num = 42;
     print(num);
