@@ -53,9 +53,28 @@ class Lexer {
       case '+':
       case '-':
       case '*':
-      case '/':
       case '^':
         addToken(TokenType.operator);
+        break;
+      case '/':
+        if (match('/')) {
+          // Single-line comment
+          while (peek() != '\n' && !isEndOfSource()) {
+            advance();
+          }
+        } else if (match('*')) {
+          // Multi-line comment
+          while (!(peek() == '*' && peekNext() == '/') && !isEndOfSource()) {
+            if (peek() == '\n') line++;
+            advance();
+          }
+          if (!isEndOfSource()) {
+            advance(); // consume '*'
+            advance(); // consume '/'
+          }
+        } else {
+          addToken(TokenType.operator);
+        }
         break;
       case '=':
         if (match('=')) {

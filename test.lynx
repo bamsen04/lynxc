@@ -1,5 +1,10 @@
+/*
+Multi line comment
+*/
+
+// one line comment
 void func(int x, string y) {
-    print(x);
+    print(x);  // in line comment
     print(y);
 }
 
