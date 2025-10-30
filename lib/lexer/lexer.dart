@@ -88,10 +88,74 @@ class Lexer {
       case '\n':
         line++;
         break;
+
+      case '"':
+        string();
+        break;
+
       default:
-        throw UnimplementedError('Unexpected character: $c');
+      if (isDigit(c)) {
+        number();
+      } else if (isAlpha(c)) {
+        identifier();
+      } else {
+        throw Exception('Unexpected character "$c" at line $line');
+      }
     }
   }
+
+  void number() {
+    while (isDigit(peek())) advance();
+
+    // Handle decimals
+    if (peek() == '.' && isDigit(peekNext())) {
+      advance(); // consume '.'
+      while (isDigit(peek())) advance();
+    }
+
+    String value = sourceCode.substring(start, current);
+    addTokenWithLiteral(TokenType.number, value);
+  }
+
+  void string() {
+    while (peek() != '"' && !isEndOfSource()) {
+      if (peek() == '\n') line++;
+      advance();
+    }
+
+    if (isEndOfSource()) throw Exception('Unterminated string at line $line');
+
+    advance(); // closing "
+
+    String value = sourceCode.substring(start + 1, current - 1);
+    addTokenWithLiteral(TokenType.string, value);
+  }
+
+  void identifier() {
+    while (isAlphaNumeric(peek())) advance();
+
+    String text = sourceCode.substring(start, current);
+
+    // Define keywords
+    Map<String, TokenType> keywords = {
+      "void": TokenType.keyword,
+      "int": TokenType.keyword,
+      "float": TokenType.keyword,
+      "string": TokenType.keyword,
+      "bool": TokenType.keyword,
+      "true": TokenType.keyword,
+      "false": TokenType.keyword,
+      "if": TokenType.keyword,
+      "else": TokenType.keyword,
+      "while": TokenType.keyword,
+      "for": TokenType.keyword,
+      "return": TokenType.keyword,
+    };
+
+    TokenType type = keywords[text] ?? TokenType.identifier;
+    addToken(type);
+  }
+
 
   bool match(String expected) {
     if (isEndOfSource()) return false;
@@ -116,5 +180,24 @@ class Lexer {
 
   bool isEndOfSource() {
     return current >= sourceCode.length;
+  }
+
+  bool isDigit(String c) => c.codeUnitAt(0) >= 48 && c.codeUnitAt(0) <= 57;
+  bool isAlpha(String c) {
+    int code = c.codeUnitAt(0);
+    return (code >= 65 && code <= 90) || // A-Z
+          (code >= 97 && code <= 122) || // a-z
+          c == '_';
+  }
+  bool isAlphaNumeric(String c) => isAlpha(c) || isDigit(c);
+
+  String peek() {
+    if (isEndOfSource()) return '\u0000';
+    return sourceCode[current];
+  }
+
+  String peekNext() {
+    if (current + 1 >= sourceCode.length) return '\u0000';
+    return sourceCode[current + 1];
   }
 }

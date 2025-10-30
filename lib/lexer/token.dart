@@ -10,6 +10,6 @@ class Token {
 
   @override
   String toString() {
-    return '${type.name}("$lexeme") at $line';
+    return '${type.name}($lexeme) at $line ${literal != null ? "with literal: $literal" : ""}';
   }
 }

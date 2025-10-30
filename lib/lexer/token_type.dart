@@ -10,5 +10,11 @@ enum TokenType {
   comma,
   dot,
 
+  keyword,
+  identifier,
+
+  string,
+  number,
+
   eof,
 }

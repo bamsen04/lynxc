@@ -1,0 +1,11 @@
+void func() {
+    print("Hello from func!");
+}
+
+void main() {
+    func(1234);
+    print("Hello, world!");
+
+    int num = 42;
+    print(num);
+}
